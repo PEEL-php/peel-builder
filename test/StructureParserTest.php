@@ -43,6 +43,25 @@ else{
         $this->assertInstanceOf(StringLiteral::class, $obj->list[0]->elseInstruction->list[0]->inner);
         $this->assertEquals("else", $obj->list[0]->elseInstruction->list[0]->inner->text);
     }
+
+    public function testBadIf()
+    {
+        $this->expectExceptionMessage("Expected ( after if");
+        PeelParser::Parse('if true');
+    }
+
+    public function testBadIf2()
+    {
+        $this->expectExceptionMessage("Expected instruction after if");
+        PeelParser::Parse('if (true)');
+    }
+
+    public function testBadIf3()
+    {
+        $this->expectExceptionMessage("Unclosed bracket");
+        PeelParser::Parse('if (true){');
+    }
+
     public function testLoop()
     {
         $obj = PeelParser::Parse('loop(10){
@@ -56,6 +75,25 @@ echo "loop";
         $this->assertInstanceOf(EchoInstruction::class, $obj->list[0]->instruction->list[0]);
         $this->assertEquals("loop", $obj->list[0]->instruction->list[0]->inner->text);
     }
+
+    public function testBadLoop()
+    {
+        $this->expectExceptionMessage("Expected ( after loop");
+        PeelParser::Parse('loop 10');
+    }
+
+    public function testBadLoop2()
+    {
+        $this->expectExceptionMessage("Expected instruction after loop");
+        PeelParser::Parse('loop (10)');
+    }
+
+    public function testBadLoop3()
+    {
+        $this->expectExceptionMessage("Unclosed bracket");
+        PeelParser::Parse('loop (10){');
+    }
+
     public function testFor()
     {
         $obj = PeelParser::Parse('for (i = 99; i > 1; i--){echo i;}');
@@ -82,12 +120,26 @@ echo "loop";
         $this->assertEquals('i', $obj->list[0]->each->item->name);
 
 
-
         $this->assertInstanceOf(EchoInstruction::class, $obj->list[0]->instruction->list[0]);
         $this->assertEquals("i", $obj->list[0]->instruction->list[0]->inner->name);
     }
-    public function testBadIf(){
-        $this->expectExceptionMessage("Expected ( after if");
-        PeelParser::Parse('if true');
+
+    public function testBadFor()
+    {
+        $this->expectExceptionMessage("Expected ( after for");
+        PeelParser::Parse('for i = 99; i > 1; i--){echo i;}');
+    }
+
+    public function testWhile()
+    {
+        $obj = PeelParser::Parse('while(true){break;}');
+        $this->assertInstanceOf(InstructionsList::class, $obj);
+        $this->assertInstanceOf(WhileInstruction::class, $obj->list[0]);
+        $this->assertInstanceOf(BoolLiteral::class, $obj->list[0]->test);
+        $this->assertTrue($obj->list[0]->test->value);
+
+        $this->assertInstanceOf(BreakInstruction::class, $obj->list[0]->instruction->list[0]);
+
+
     }
 }
