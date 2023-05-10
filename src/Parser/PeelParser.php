@@ -6,6 +6,8 @@ use Peel\Builder\Nodes\BoolLiteral;
 use Peel\Builder\Nodes\EchoInstruction;
 use Peel\Builder\Nodes\IfElseInstruction;
 use Peel\Builder\Nodes\InstructionsList;
+use Peel\Builder\Nodes\IntegerLiteral;
+use Peel\Builder\Nodes\LoopInstruction;
 use Peel\Builder\Nodes\Node;
 use Peel\Builder\Nodes\StringLiteral;
 
@@ -38,7 +40,7 @@ class PeelParser
             $inst = $this->parseNormal();
             $ret->list[] = $inst;
             $this->skipWhite();
-            if (!($inst instanceof InstructionsList) &&!($inst instanceof IfElseInstruction) && $this->char() != ';') $this->error();
+            if (!($inst instanceof InstructionsList) &&!($inst instanceof IfElseInstruction)&&!($inst instanceof LoopInstruction) && $this->char() != ';') $this->error();
             else $this->position++;
         }
         return $ret;
@@ -55,7 +57,11 @@ class PeelParser
                 $this->position += 5;
                 $inner = $this->parseNormal(1);
                 $ret = new EchoInstruction($inner);
-            } else if ($this->isNextWord('if')) {
+            } else if ($this->isNextWord('loop')) {
+                $this->position += 4;
+                list($count, $instructions) = $this->parseIfContent();
+                $ret = new LoopInstruction($count, $instructions);
+            }else if ($this->isNextWord('if')) {
                 $this->position += 2;
                 list($condition, $instructions) = $this->parseIfContent();
                 $ret = new IfElseInstruction([(object)['condition' => $condition, 'instruction' => $instructions]]);
@@ -70,6 +76,9 @@ class PeelParser
                 }else{
                     $ret->elseInstruction=$this->parseNormal();
                 }
+            }else if (preg_match("/[+-]?[0-9\.]/", $char)) {
+                $value = $this->readUntill("/[^0-9]/");
+                $ret = new IntegerLiteral(+$value);
             } else if ($this->char() == '"') {
                 $this->position += 1;
                 $text = "";
@@ -163,4 +172,17 @@ class PeelParser
         $instructions = $this->parseNormal();
         return array($condition, $instructions);
     }
+    protected function readUntill($regexp)
+    {
+        $ret = "";
+
+        while ($this->position < strlen($this->text)) {
+            $char = $this->text[$this->position];
+            if (preg_match($regexp, $char)) break;
+            $ret .= $char;
+            $this->position++;
+        }
+        return $ret;
+    }
+
 }
